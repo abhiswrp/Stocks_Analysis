@@ -1,6 +1,37 @@
 # import pandas as pd
+# def process_stocks(file_path, investment):
+#     try:
+#         data = pd.read_csv(file_path)
+#         print("Columns in CSV:", data.columns)
+#     except FileNotFoundError:
+#         print(f"Error: The file {file_path} was not found.")
+#         return None
+#     if 'Ticker' not in data.columns or 'Weightage' not in data.columns:
+#         print("Error: Required columns (Ticker, Weightage) are missing.")
+#         return None
+#     total_weightage = data['Weightage'].sum()
+#     if total_weightage == 0:
+#         print("Error: Total weightage is zero, cannot distribute investment.")
+#         return None
+#     data['Investment'] = (data['Weightage'] / total_weightage) * investment
+#     data['Shares'] = data['Investment']
+#     return data[['Ticker', 'Weightage', 'Investment', 'Shares']]
 
-# def process_stocks(file_path, start_date, end_date, investment):
+# if __name__ == "__main__":
+#     csv_file = "data/stocks_data.csv"
+#     investment = float(input("Enter the investment amount: "))
+#     result_data = process_stocks(csv_file, investment)
+#     if result_data is not None:
+#         print("\nProcessed Data:\n", result_data)
+#         result_data.to_csv("processed_stocks.csv", index=False)
+#         print("\nProcessed data saved to 'processed_stocks.csv'.")
+
+
+
+# import pandas as pd
+# import os
+
+# def process_stocks(file_path, investment, start_date, end_date):
 #     # Load CSV file
 #     try:
 #         data = pd.read_csv(file_path)
@@ -9,47 +40,53 @@
 #         print(f"Error: The file {file_path} was not found.")
 #         return None
 
-#     # Check required columns
-#     required_columns = ['Ticker', 'Date', 'Price']
-#     for column in required_columns:
-#         if column not in data.columns:
-#             print(f"Error: Missing required column '{column}' in the CSV file.")
-#             return None
-
-#     # Filter by date range
-#     data['Date'] = pd.to_datetime(data['Date'])
-#     filtered_data = data[(data['Date'] >= start_date) & (data['Date'] <= end_date)]
-
-#     if filtered_data.empty:
-#         print("No data found for the specified date range.")
+#     # Check for required columns
+#     if 'Ticker' not in data.columns or 'Weightage' not in data.columns:
+#         print("Error: Required columns (Ticker, Weightage) are missing.")
 #         return None
 
-#     # Simple analysis: Calculate total investment distribution
-#     filtered_data['Investment'] = investment / len(filtered_data)
-#     filtered_data['Shares'] = filtered_data['Investment'] / filtered_data['Price']
-    
-#     return filtered_data[['Ticker', 'Date', 'Price', 'Investment', 'Shares']]
+#     # Calculate total weightage
+#     total_weightage = data['Weightage'].sum()
+
+#     if total_weightage == 0:
+#         print("Error: Total weightage is zero, cannot distribute investment.")
+#         return None
+
+#     # Distribute the investment based on weightage
+#     data['Investment'] = (data['Weightage'] / total_weightage) * investment
+#     data['Shares'] = data['Investment']  # Assuming no price data, shares = investment (for demonstration)
+
+#     # Add From Date and To Date columns
+#     data['From Date'] = start_date
+#     data['To Date'] = end_date
+
+#     # Prepare final result with selected columns
+#     result_data = data[['Ticker', 'Weightage', 'From Date', 'To Date']]
+
+#     return result_data
 
 # # Main logic
 # if __name__ == "__main__":
+#     # Define the file paths
 #     csv_file = "data/stocks_data.csv"
+#     output_folder = "output"
+    
+#     # Ensure output folder exists
+#     os.makedirs(output_folder, exist_ok=True)
+    
+#     # Get input from user
+#     investment = float(input("Enter the investment amount: "))
 #     start_date = input("Enter the start date (YYYY-MM-DD): ")
 #     end_date = input("Enter the end date (YYYY-MM-DD): ")
-#     investment = float(input("Enter the investment amount: "))
 
-#     try:
-#         start_date = pd.to_datetime(start_date)
-#         end_date = pd.to_datetime(end_date)
-#     except ValueError:
-#         print("Invalid date format. Please use YYYY-MM-DD.")
-#         exit(1)
+#     # Process the data
+#     result_data = process_stocks(csv_file, investment, start_date, end_date)
 
-#     result_data = process_stocks(csv_file, start_date, end_date, investment)
-
+#     # Save the results to an Excel file
 #     if result_data is not None:
-#         print("\nProcessed Data:\n", result_data)
-#         result_data.to_csv("processed_stocks.csv", index=False)
-#         print("\nProcessed data saved to 'processed_stocks.csv'.")
+#         output_file = os.path.join(output_folder, "investment_results.xlsx")
+#         result_data.to_excel(output_file, index=False)
+#         print(f"\nProcessed data saved to '{output_file}'.")
 
 
 
@@ -64,30 +101,37 @@
 #         print(f"Error: The file {file_path} was not found.")
 #         return None
 
-#     # Try to identify necessary columns dynamically
-#     date_col = next((col for col in data.columns if "date" in col.lower()), None)
-#     ticker_col = next((col for col in data.columns if "ticker" in col.lower()), None)
-#     price_col = next((col for col in data.columns if "price" in col.lower()), None)
+#     # Check required columns: Ticker, Weightage
+#     required_columns = ['Ticker', 'Weightage']
+#     for column in required_columns:
+#         if column not in data.columns:
+#             print(f"Error: Missing required column '{column}' in the CSV file.")
+#             return None
 
-#     # Validate identified columns
-#     if not date_col or not ticker_col or not price_col:
-#         print("Error: Required columns (Date, Price, Ticker) are missing.")
-#         return None
+#     # Calculate investment per ticker based on weightage
+#     data['Investment'] = data['Weightage'] / 100 * investment
 
-#     # Filter by date range
-#     data[date_col] = pd.to_datetime(data[date_col], errors='coerce')
-#     filtered_data = data.dropna(subset=[date_col])  # Drop invalid dates
-#     filtered_data = filtered_data[(filtered_data[date_col] >= start_date) & (filtered_data[date_col] <= end_date)]
+#     # Store results in a new DataFrame
+#     analysis_data = []
 
-#     if filtered_data.empty:
-#         print("No data found for the specified date range.")
-#         return None
+#     for _, row in data.iterrows():
+#         ticker = row['Ticker']
+#         weightage = row['Weightage']
+#         investment_for_ticker = row['Investment']
 
-#     # Perform calculations
-#     filtered_data['Investment'] = investment / len(filtered_data)
-#     filtered_data['Shares'] = filtered_data['Investment'] / filtered_data[price_col]
-    
-#     return filtered_data[[ticker_col, date_col, price_col, 'Investment', 'Shares']]
+#         # Assuming start_date and end_date are the same for each ticker in the analysis
+#         analysis_data.append({
+#             'Ticker': ticker,
+#             'Weightage': weightage,
+#             'From Date': start_date,
+#             'To Date': end_date,
+#             'Investment for Ticker': investment_for_ticker,
+#         })
+
+#     # Convert analysis data into a DataFrame
+#     analysis_df = pd.DataFrame(analysis_data)
+
+#     return analysis_df
 
 # # Main logic
 # if __name__ == "__main__":
@@ -107,15 +151,17 @@
 
 #     if result_data is not None:
 #         print("\nProcessed Data:\n", result_data)
-#         result_data.to_csv("processed_stocks.csv", index=False)
-#         print("\nProcessed data saved to 'processed_stocks.csv'.")
+
+#         # Save to Excel in the output folder
+#         output_path = "output/investment_results.xlsx"
+#         result_data.to_excel(output_path, index=False)
+#         print(f"\nProcessed data saved to '{output_path}'.")
 
 
 
 import pandas as pd
 
-def process_stocks(file_path, investment):
-    # Load CSV file
+def process_stocks(file_path, start_date, end_date, investment):
     try:
         data = pd.read_csv(file_path)
         print("Columns in CSV:", data.columns)
@@ -123,32 +169,53 @@ def process_stocks(file_path, investment):
         print(f"Error: The file {file_path} was not found.")
         return None
 
-    # Check for required columns
-    if 'Ticker' not in data.columns or 'Weightage' not in data.columns:
-        print("Error: Required columns (Ticker, Weightage) are missing.")
-        return None
+    required_columns = ['Ticker', 'Weightage']
+    for column in required_columns:
+        if column not in data.columns:
+            print(f"Error: Missing required column '{column}' in the CSV file.")
+            return None
 
-    # Calculate total weightage
-    total_weightage = data['Weightage'].sum()
+    data['Investment'] = data['Weightage'] / 100 * investment
 
-    if total_weightage == 0:
-        print("Error: Total weightage is zero, cannot distribute investment.")
-        return None
+    analysis_data = []
 
-    # Distribute the investment based on weightage
-    data['Investment'] = (data['Weightage'] / total_weightage) * investment
-    data['Shares'] = data['Investment']  # Assuming no price data, shares = investment (for demonstration)
+    for _, row in data.iterrows():
+        ticker = row['Ticker']
+        weightage = row['Weightage']
+        investment_for_ticker = row['Investment']
 
-    return data[['Ticker', 'Weightage', 'Investment', 'Shares']]
+        analysis_data.append({
+            'Ticker': ticker,
+            'Weightage': weightage,
+            'From Date': start_date,
+            'To Date': end_date,
+            'Investment for Ticker': investment_for_ticker,
+        })
 
-# Main logic
+    analysis_df = pd.DataFrame(analysis_data)
+
+    analysis_df.rename(columns={'From Date': str(start_date.date()), 'To Date': str(end_date.date())}, inplace=True)
+
+    return analysis_df
+
 if __name__ == "__main__":
     csv_file = "data/stocks_data.csv"
+    start_date = input("Enter the start date (YYYY-MM-DD): ")
+    end_date = input("Enter the end date (YYYY-MM-DD): ")
     investment = float(input("Enter the investment amount: "))
 
-    result_data = process_stocks(csv_file, investment)
+    try:
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date)
+    except ValueError:
+        print("Invalid date format. Please use YYYY-MM-DD.")
+        exit(1)
+
+    result_data = process_stocks(csv_file, start_date, end_date, investment)
 
     if result_data is not None:
         print("\nProcessed Data:\n", result_data)
-        result_data.to_csv("processed_stocks.csv", index=False)
-        print("\nProcessed data saved to 'processed_stocks.csv'.")
+
+        output_path = "output/investment_results.xlsx"
+        result_data.to_excel(output_path, index=False)
+        print(f"\nProcessed data saved to '{output_path}'.")
