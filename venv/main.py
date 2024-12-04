@@ -1,60 +1,52 @@
 import pandas as pd
-import yfinance as yf
-from datetime import datetime
-from openpyxl import Workbook
 
-# Step 1: Load the stocks and their weightages
-def load_stock_data(csv_file):
-    return pd.read_csv(csv_file)
-
-# Step 2: Fetch stock data from Yahoo Finance
-def fetch_stock_data(stock, start_date, end_date):
+def process_stocks(file_path, start_date, end_date, investment):
+    # Load CSV file
     try:
-        data = yf.download(stock, start=start_date, end=end_date)
-        return data[['Close']]  # Extracting closing prices
-    except Exception as e:
-        print(f"Error fetching data for {stock}: {e}")
+        data = pd.read_csv(file_path)
+        print("Columns in CSV:", data.columns)
+    except FileNotFoundError:
+        print(f"Error: The file {file_path} was not found.")
         return None
 
-# Step 3: Calculate investment and number of shares
-def calculate_shares(stock_data, weightage, investment):
-    stock_data['Investment'] = weightage * investment
-    stock_data['Shares'] = stock_data['Investment'] / stock_data['Close']
-    return stock_data
+    # Check required columns
+    required_columns = ['Ticker', 'Date', 'Price']
+    for column in required_columns:
+        if column not in data.columns:
+            print(f"Error: Missing required column '{column}' in the CSV file.")
+            return None
 
-# Step 4: Main function to process all stocks
-def process_stocks(csv_file, start_date, end_date, investment):
-    stocks_data = load_stock_data(csv_file)
-    results = []
+    # Filter by date range
+    data['Date'] = pd.to_datetime(data['Date'])
+    filtered_data = data[(data['Date'] >= start_date) & (data['Date'] <= end_date)]
+
+    if filtered_data.empty:
+        print("No data found for the specified date range.")
+        return None
+
+    # Simple analysis: Calculate total investment distribution
+    filtered_data['Investment'] = investment / len(filtered_data)
+    filtered_data['Shares'] = filtered_data['Investment'] / filtered_data['Price']
     
-    for _, row in stocks_data.iterrows():
-        stock = row['stock']
-        weightage = row['weightage']
-        
-        print(f"Processing stock: {stock}")
-        stock_data = fetch_stock_data(stock, start_date, end_date)
-        
-        if stock_data is not None:
-            stock_data = calculate_shares(stock_data, weightage, investment)
-            stock_data['Stock'] = stock  # Add stock name for reference
-            results.append(stock_data)
-    
-    # Combine all results into a single DataFrame
-    final_data = pd.concat(results)
-    return final_data
+    return filtered_data[['Ticker', 'Date', 'Price', 'Investment', 'Shares']]
 
-# Step 5: Write results to an Excel file
-def write_to_excel(data, output_file):
-    data.to_excel(output_file, index=False)
-    print(f"Results written to {output_file}")
-
-# User Inputs
+# Main logic
 if __name__ == "__main__":
-    csv_file = "stocks.csv"
+    csv_file = "data/stocks_data.csv"
     start_date = input("Enter the start date (YYYY-MM-DD): ")
     end_date = input("Enter the end date (YYYY-MM-DD): ")
     investment = float(input("Enter the investment amount: "))
-    
+
+    try:
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date)
+    except ValueError:
+        print("Invalid date format. Please use YYYY-MM-DD.")
+        exit(1)
+
     result_data = process_stocks(csv_file, start_date, end_date, investment)
-    output_file = "output/investment_results.xlsx"
-    write_to_excel(result_data, output_file)
+
+    if result_data is not None:
+        print("\nProcessed Data:\n", result_data)
+        result_data.to_csv("processed_stocks.csv", index=False)
+        print("\nProcessed data saved to 'processed_stocks.csv'.")
