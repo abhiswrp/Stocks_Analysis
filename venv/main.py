@@ -160,7 +160,6 @@
 
 
 import pandas as pd
-
 def process_stocks(file_path, start_date, end_date, investment):
     try:
         data = pd.read_csv(file_path)
@@ -168,22 +167,17 @@ def process_stocks(file_path, start_date, end_date, investment):
     except FileNotFoundError:
         print(f"Error: The file {file_path} was not found.")
         return None
-
     required_columns = ['Ticker', 'Weightage']
     for column in required_columns:
         if column not in data.columns:
             print(f"Error: Missing required column '{column}' in the CSV file.")
             return None
-
     data['Investment'] = data['Weightage'] / 100 * investment
-
     analysis_data = []
-
     for _, row in data.iterrows():
         ticker = row['Ticker']
         weightage = row['Weightage']
         investment_for_ticker = row['Investment']
-
         analysis_data.append({
             'Ticker': ticker,
             'Weightage': weightage,
@@ -191,11 +185,8 @@ def process_stocks(file_path, start_date, end_date, investment):
             'To Date': end_date,
             'Investment for Ticker': investment_for_ticker,
         })
-
     analysis_df = pd.DataFrame(analysis_data)
-
     analysis_df.rename(columns={'From Date': str(start_date.date()), 'To Date': str(end_date.date())}, inplace=True)
-
     return analysis_df
 
 if __name__ == "__main__":
@@ -203,19 +194,15 @@ if __name__ == "__main__":
     start_date = input("Enter the start date (YYYY-MM-DD): ")
     end_date = input("Enter the end date (YYYY-MM-DD): ")
     investment = float(input("Enter the investment amount: "))
-
     try:
         start_date = pd.to_datetime(start_date)
         end_date = pd.to_datetime(end_date)
     except ValueError:
         print("Invalid date format. Please use YYYY-MM-DD.")
         exit(1)
-
     result_data = process_stocks(csv_file, start_date, end_date, investment)
-
     if result_data is not None:
         print("\nProcessed Data:\n", result_data)
-
         output_path = "output/investment_results.xlsx"
         result_data.to_excel(output_path, index=False)
         print(f"\nProcessed data saved to '{output_path}'.")
